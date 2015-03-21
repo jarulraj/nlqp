@@ -1,4 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-def main():
-    """Entry point for the application script"""
-    print("Call your main application code here")
+from runtime import console
+import argparse
+
+## ==============================================
+## main
+## ==============================================
+if __name__ == '__main__':
+      
+    # start console 
+    console.startConsole()

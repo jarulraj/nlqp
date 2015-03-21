@@ -1,8 +1,5 @@
 """A setuptools based setup module.
-
-See:
 https://packaging.python.org/en/latest/distributing.html
-https://github.com/jarulraj/esql
 """
 
 # Always prefer setuptools over distutils
@@ -36,7 +33,7 @@ setup(
     author_email='jarulraj@cs.cmu.edu',
 
     # Choose your license
-    license='MIT',
+    license='BSD',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -65,7 +62,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='Database Systems',
+    keywords='DBMS, Query, Database, CLI',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -75,7 +72,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['peppercorn'],
+    install_requires=['colorama'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

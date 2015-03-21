@@ -5,19 +5,19 @@ from __future__ import print_function
 import os
 import sys
 import getpass
-import psycopg2
-import traceback
+import re
+import glob
+import colorama
 
-from colorama import init
 from cmd2 import Cmd
-from numbers import Number
-from tabulate import tabulate
 from termcolor import colored
 
-# DB Connection
-db_conn = None    
+import drivers
+import runtime.executor
 
-tables = set()
+# Driver
+driver = None
+
 keywords = set(['limit', "only", "just",
                 'count', "many", "number",
                 'is' , "equal", 'equals', 
@@ -27,9 +27,6 @@ keywords = set(['limit', "only", "just",
                 'larger', 'smaller', 'higher', 'lower'])
 
 
-column_to_table = {}
-table_to_column = {}
-
 limit = False
 limit_cnt = 0
 
@@ -38,35 +35,6 @@ count = False
 ## ============================================================================================
 ## SEQ SCAN
 ## ============================================================================================
-
-def execute_query(query):
-    "Execute the query on the given connection"
-    
-    print(colored("SQL Query :: " + query, 'blue'))
-    
-    try:
-        cursor = db_conn.cursor()                        
-        cursor.execute(query)
-
-        columns = [desc[0] for desc in cursor.description]        
-                
-        rows = cursor.fetchall();               
-        if rows is not None:
-
-            try:               
-                print (colored(tabulate(rows, headers=columns, tablefmt="psql"), 'red'))
-            except UnicodeDecodeError:
-                print(colored(rows, 'red'))                
-
-    except Exception:
-        print (traceback.format_exc())
-        print ("Unable to perform operation. Please try again.")
-        if db_conn is not None:
-            db_conn.rollback()
-
-    finally:
-        if cursor is not None:
-            cursor.close()
 
 def isfloat(value):
     "Check if value is a float"
@@ -230,152 +198,72 @@ def run_index_scan(tokens):
 class console(Cmd):
     intro = """English to SQL translator.\nType \"help\" for help.\n"""
     
-    ruler = '-'
     prompt = colored('query=# ', 'green')
 
-## ============================================================================================
-## Basic commands
-## ============================================================================================
+    ## Basic commands
 
     def do_clear(self, line):
         "Clear the shell"        
         os.system('clear')    
 
     def do_ls(self, line):
-        "List the current dir"
+        "List the contents of current dir"
         os.system('ls')    
-        
-## ============================================================================================
-## Pick database
-## ============================================================================================
-    
-    def do_db(self, line = "parallels"):
-        "Pick the database to analyze"
-        print ("Looking up database : ", line)
 
-        try:
-            db = line
-            #c_user = raw_input('Enter username: ')
-            #c_password = getpass.getpass(prompt="Enter password : ")
-            #c_host = raw_input("Enter hostname : ") 
-            #c_port = raw_input("Enter port : ")
-    
-            #if not c_host:
-            c_host = 'localhost'
-            #if not c_port:
-            c_port = '5432'
-                
-            c_user = "parallels";
-            c_password = "parallels"
-            
-            global db_conn;            
-            cursor = None
-            
-            db_conn = psycopg2.connect(database=db, user=c_user, password=c_password, 
-                                    host=c_host, port=c_port)
+    def do_pwd(self, line):
+        "List the current dir"
+        os.system('pwd')    
 
-                        
-            ## POPULATE TABLES
-            
-            cursor = db_conn.cursor()                        
-            cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
-
-            global tables;
-            rows = cursor.fetchall();                
-            
-            for row in rows:
-                table = row[0]
-                tables.add(table)
-                keywords.add(table)
-
-            ## POPULATE COLUMNS
-
-            global table_to_column;
-            global column_to_table;
-
-            for table in tables:
-                cursor.execute("SELECT * FROM " + table +" LIMIT 0")
-                columns = [desc[0] for desc in cursor.description]
-                
-                table_to_column[table] = columns;
-                
-                for column in columns:
-                    column_to_table[column] = table;
-                    keywords.add(column)
-                                                            
-        except Exception:
-            print (traceback.format_exc())
-            print ("Unable to perform operation. Please try again.")
-            if db_conn is not None:
-                db_conn.rollback()
-
-        finally:
-            if cursor is not None:
-                cursor.close()
-
-## ============================================================================================
-## SQL Query directly
-## ============================================================================================
+    ## Execute SQL query directly
                                 
-    def do_sql(self, line):
+    def do_sql(self, query):
         "Execute SQL query directly"
+        driver.executeQuery(query);
+        
+    ## Select database
+    
+    def do_db(self, db_name):
+        "Select the database to analyze"
+                
+        print ("Looking up database : ", db_name)
+        driver.selectDatabase(db_name)
 
-        if db_conn == None:
-            print ("Pick database first")        
-        else:
-            execute_query(line);
-
-
-## ============================================================================================
-## List tables
-## ============================================================================================
+    ## List tables
                                 
     def do_list_tables(self, line):
-        "List the tables in the database"
-
-        if db_conn == None:
-            print ("Pick database first")        
-        else:
+        "List the tables in the database"        
+        tables = driver.listTables()
+        
+        if tables is not None:
             print (tables)
 
-## ============================================================================================
-## List columns
-## ============================================================================================
+    ## List columns
             
-    def do_list_columns(self, line):
+    def do_list_columns(self, table_name):
         "List the columns in the table"        
+        columns = driver.listTableColumns(table_name)
         
-        if db_conn == None:
-            print ("Pick database first")        
-        else:
-            table = line;
-            try:
-                print (table_to_column[table])
-            except Exception:
-                print (traceback.format_exc())
-                print ("Unable to perform operation. Please try again.")
- 
+        if columns is not None:
+            print(columns)
 
     def complete_list_columns(self, text, line, start_index, end_index):        
-        "Auto complete list column command"
+        "Auto complete list column"
 
         if text:
             return [
-                table for table in tables
+                table for table in driver.listTables()
                 if table.startswith(text)
             ]
         else:
             return tables
 
-## ============================================================================================
-## Parse a query
-## ============================================================================================
+    ## Parse an english query
         
-    def do_p(self,line):
+    def do_p(self, query):
         "Parse an english query"
-                    
+                            
         # Tokenize
-        tokens = line.split(' ')
+        tokens = query.split(' ')
         
         filtered_tokens = []
           
@@ -441,12 +329,50 @@ class console(Cmd):
             run_index_scan(filtered_tokens);
             
 
-        # Index scan    
-        
-        
-if __name__ == '__main__':
+## ==============================================
+## loadDriverClass
+## ==============================================
+
+def loadDriverClass(name):
+    "Load the appropriate driver"
     
-    init()
+    full_name = "%sDriver" % name.title()
+
+    driver_name = "%s_driver" % name.title().lower()
+    mod = __import__('drivers.%s' % driver_name, globals(), locals(), [full_name])
+
+    print (colored("Loaded :: " + full_name, 'red'))    
+    klass = getattr(mod, full_name)
+    return klass
+
+## ==============================================
+## getDrivers
+## ==============================================
+def getDrivers():
+    "Get driver list"
     
-    console = console()
-    console.cmdloop()
+    drivers = []
+    for f in map(lambda x: os.path.basename(x).replace("_driver.py", ""), glob.glob("./drivers/*_driver.py")):
+        if f != "abstract": 
+            drivers.append(f)
+
+    return (drivers)
+
+## ==============================================
+## Entry point for console
+## ==============================================        
+def startConsole():
+    "Start Console"
+        
+    system = 'postgres'
+    
+    ## Create a handle to the target client driver
+    global driver
+    
+    driver_class = loadDriverClass(system)
+    assert driver_class != None, "Failed to find '%s' class" % system
+    driver = driver_class()
+    
+    # Start console    
+    c = console()        
+    c.cmdloop()
