@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ["console"]
+__all__ = ["console", "executor"]

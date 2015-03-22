@@ -4,5 +4,4 @@ encoding//esql/drivers/__init__.py=utf-8
 encoding//esql/drivers/abstract_driver.py=utf-8
 encoding//esql/drivers/postgres_driver.py=utf-8
 encoding//esql/parser/__init__.py=utf-8
-encoding//esql/parser/parser.py=utf-8
 encoding//esql/runtime/__init__.py=utf-8

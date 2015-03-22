@@ -10,6 +10,8 @@ import colorama
 from tabulate import tabulate
 from termcolor import colored
 
+import parser
+
 ## ==============================================
 ## PostgresDriver
 ## ==============================================
@@ -59,10 +61,14 @@ class PostgresDriver(AbstractDriver):
             self.cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
     
             rows = self.cursor.fetchall();                
-            
+    
+            ## INIT KEYWORDS
+            self.keywords = parser.keywords
+        
             for row in rows:
                 table = row[0]
                 self.tables.add(table)
+                self.keywords.add(table)
                 
             ## POPULATE COLUMNS
             for table in self.tables:
@@ -73,6 +79,7 @@ class PostgresDriver(AbstractDriver):
                 self.table_to_column[table] = columns;                
                 for column in columns:
                     self.column_to_table[column] = table;
+                    self.keywords.add(column)
                                                             
         except Exception:
             print (traceback.format_exc())

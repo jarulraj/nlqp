@@ -12,6 +12,7 @@ class AbstractDriver(object):
         self.name = name
         self.driver_name = "%s Driver" % self.name.title()
         self.config = None
+        self.keywords = set()
         
         # Schema information
         self.tables = set()
@@ -62,5 +63,8 @@ class AbstractDriver(object):
         """Execute a query"""        
         raise NotImplementedError("%s does not implement executeQuery" % (self.driver_name))
 
+    def parseQuery(self, query):
+        """Parse and execute an English query"""        
+        raise NotImplementedError("%s does not implement parseQuery" % (self.driver_name))
         
 ## CLASS
