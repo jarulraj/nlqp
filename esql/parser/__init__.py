@@ -2,25 +2,45 @@
 
 import runtime.executor
 
-keywords = set(['limit', "only", "just",
-                'count', "many", "number",
-                'is' , "equal", 'equals', 
-                'greater', 'less', 'than', 'to'
-                'between', 'like', 'in',
-                'and', 'or', 'not',
-                'larger', 'smaller', 'higher', 'lower'])
+## ============================================================================================
+## KEYWORDS
+## ============================================================================================
 
+limit_keywords = set(['limit', 'only', 'just'])
+count_keywords = set(['count', 'many', 'number'])
+distinct_keywords = set(['distinct','unique'])
+project_keywords = set(['project','restrict'])
+
+equal_keywords = set(['equal', 'equals'])
+greater_keywords = set(['greater', 'larger', 'higher']) 
+smaller_keywords = set(['less', 'smaller', 'lesser', 'lower'])
+misc_operator_keywords = set(['between', 'like', 'in'])
+
+operator_keywords = equal_keywords | greater_keywords | smaller_keywords | misc_operator_keywords
+
+connective_keywords = set(['and', 'or', 'not'])
+
+keywords = operator_keywords | connective_keywords | limit_keywords | count_keywords | distinct_keywords | project_keywords
+
+## ============================================================================================
+## STATE
+## ============================================================================================
+
+table_ref = 0
+column_ref = 0
+
+point_lookup = 0
+range_lookup = 0
+
+distinct = False
+count = False
 
 limit = False
 limit_cnt = 0
 
-table_ref = 0
-column_ref = 0
-point_lookup = 0
-range_lookup = 0
-
-
-count = False
+## ============================================================================================
+## UTILITIES
+## ============================================================================================
 
 def isFloat(value):
     "Check if value is a float"
@@ -40,6 +60,10 @@ def isQuoted(value):
         return True;            
 
     return False;
+
+## ============================================================================================
+## HELPERS
+## ============================================================================================
 
 def getConnective(token):
     "Check and return connective"
@@ -82,32 +106,43 @@ def getOperator(driver, tokens):
     or_seen = False
     
     for token in tokens:
-        if token == "equal" or token == "equals" or token == "is":
+        if token == "equal" or token == "equals":
             if not_seen is False:
                 return " = "
             else:
                 return " <> "
+
         elif token == "not":
             not_seen = True;
+            
         elif token == "greater" or token == "great" or token == "higher" or token == "larger":
             greater = True
+
+            if not_seen:
+                lesser = True
+                greater = False
+
         elif token == "lesser" or token == "less" or token == "lower" or token == "smaller":
             lesser = True
+            if not_seen:
+                lesser = False
+                greater = True
+            
         elif token == "or":
             or_seen = True
-            if greater is True:               
-                return " >= "
-            else:
-                return " <= "
+        
         elif token == "between":
             return " BETWEEN "
+        
         elif token == "like":
             return " LIKE "
+        
         elif token == "in":
             return "IN"
 
         elif token in driver.column_to_table.keys():
             break;
+        
         elif token in driver.tables:
             break;
 
@@ -119,13 +154,14 @@ def getOperator(driver, tokens):
     elif lesser:
         return " < "
         
-    return " unk "
+    return " = "
 
-## ==============================================
-## Parser
-## ==============================================
+## ============================================================================================
+## PARSER CORE
+## ============================================================================================
+
 def parse(driver, query):
-        "Parse an english query"
+        "Parse a human query"
                             
         # Tokenize
         tokens = query.split(' ')
@@ -143,10 +179,7 @@ def parse(driver, query):
         range_lookup = 0
             
         for token in tokens:
-            if token in driver.keywords or isFloat(token) or isQuoted(token):                
-                if(isQuoted(token)):
-                    token = token[1:-1]
-                                
+            if token in driver.keywords or isFloat(token) or isQuoted(token):                                                
                 filtered_tokens.append(token)        
         
                 if token in driver.tables:
@@ -157,38 +190,46 @@ def parse(driver, query):
                 
         print("Filtered Tokens :: " + str(filtered_tokens))
 
+
+        # Set DISTINCT
+        global distinct;        
+        distinct = False
+        if set(tokens) & distinct_keywords:
+            distinct = True
+
+        # Set COUNT
+        global count;        
+        count = False
+        if set(tokens) & count_keywords:
+            count = True
+
+        # Set PROJECT
+        global project;        
+        project = False
+        if set(tokens) & project_keywords:
+            project = True
+        
         # Set LIMIT
         global limit;
         global limit_cnt;
         
         limit = False
-        if "limit" in tokens or "only" in tokens or "just" in tokens:
+        limit_keyword = set(tokens) & limit_keywords
+        if limit_keyword:
             limit = True
 
             try:
-                if "limit" in tokens:
-                    offset = tokens.index("limit")
-                elif "only" in tokens:
-                    offset = tokens.index("only")
-                else:
-                    offset = tokens.index("just")
+                offset = tokens.index(limit_keyword.pop())
 
                 limit_cnt = None
                 for token in tokens[offset+1:]:
                     if token.isdigit():
-                        limit_cnt = token;    
+                        limit_cnt = token;
                     
                 limit = limit_cnt.isdigit()
                 
             except ValueError:
                 limit = False;
                 return None
-
-        # Set COUNT
-        global count;
-        
-        count = False
-        if "count" in tokens or "many" in tokens or "number" in tokens:
-            count = True
 
         return filtered_tokens

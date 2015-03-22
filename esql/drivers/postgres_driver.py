@@ -78,6 +78,7 @@ class PostgresDriver(AbstractDriver):
 
                 self.table_to_column[table] = columns;                
                 for column in columns:
+                    self.columns.add(column)
                     self.column_to_table[column] = table;
                     self.keywords.add(column)
                                                             

@@ -1,0 +1,7 @@
+db parallels
+p show categories
+p count all categories
+p show categories with CategoryID is less than 6 or CategoryName is like 'S%'
+p show categories project CategoryID CategoryName 
+p show categories with CategoryID greater than 2 or CategoryName is like 'A%' project CategoryID and CategoryName  
+p show categories with CategoryID greater than 2 or CategoryName is like 'A%' project CategoryID   

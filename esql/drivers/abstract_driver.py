@@ -16,6 +16,7 @@ class AbstractDriver(object):
         
         # Schema information
         self.tables = set()
+        self.columns = set()
         self.column_to_table = {}
         self.table_to_column = {}
         
