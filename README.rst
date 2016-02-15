@@ -1,6 +1,5 @@
-ESQL
-====
+****************************************
+NLQP: Query processing for humans
+****************************************
 
-Simple English to SQL translator.
-
-
+NLQP's goal is to allow query processing in natural languages.

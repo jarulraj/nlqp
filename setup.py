@@ -15,18 +15,18 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='esql',
+    name='nlqp',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
     version='1.0.0',
 
-    description='English to SQL translator',
+    description='Natural Lanaguage Query Processing',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/jarulraj/esql',
+    url='https://github.com/jarulraj/nlqp',
 
     # Author details
     author='Joy Arulraj',
