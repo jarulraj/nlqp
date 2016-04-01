@@ -1,5 +1,5 @@
 ****************************************
-NLQP: Query processing for humans
+Query processing for humans
 ****************************************
 
-NLQP's goal is to allow query processing in natural languages.
+The goal is to allow query processing in natural languages.
